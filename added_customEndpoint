@@ -1,0 +1,148 @@
+package main
+
+import (
+        "fmt"
+        "net/http"
+        "io"
+        "errors"
+        "os"
+        "net"
+        "context"
+        "time"
+        _"log"
+        _"strings"
+        _"strconv"
+
+)
+
+
+func getHeader(w http.ResponseWriter, r *http.Request) {
+     ua := r.Header.Get("Host")
+     //fmt.Println(ua)
+     //headers := r.Header
+     //fmt.Println(headers)
+     //fmt.Fprintf(w, "User agent: %s\n", ua)
+     query :=  r.URL.Query()
+     fmt.Println(query)
+     for k, v := range r.Header {
+            fmt.Println(k,v)
+           fmt.Fprintf(w, "%q, %q\n", k, v)
+      }
+     fmt.Printf(ua)
+}
+
+func doPing(host string, port string) bool {
+    var d net.Dialer
+    ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+    defer cancel()
+    conn, err := d.DialContext(ctx, "tcp", host+":"+port)
+    if err != nil {
+       //log.Fatalf("Failed to dial: %v", err)
+       //fmt.Fprintf(w,"Error")
+       return false
+     }
+     //fmt.Fprintf(w, "Successfull")
+     conn.Close()
+return true
+}
+
+func pingTest(w http.ResponseWriter, r *http.Request) {
+     queryParams := r.URL.Query()
+     if len(queryParams) < 1 {
+        fmt.Println("No Queries parameters found in request")
+        io.WriteString(w, "Please supply the query parameters: <ip_address>=<port>")
+     }  else {
+       fmt.Printf("Ping tests: \n")
+      io.WriteString(w, "Ping test running...\n")
+     for k,v := range queryParams {
+          //fmt.Println(k)
+         if net.ParseIP(k) == nil {
+          fmt.Printf("IP Address: %s  - Invalid\n", k)
+          io.WriteString(w, "Invalid IP Address")
+        } else {
+                for _, i := range v {
+                   //stringArray := []string {k,i}
+                   //justString := strings.Join(stringArray,":")
+                   //fmt.Println(justString)
+                   //fmt.Println(v)
+                   execPing := doPing(k,i)
+                   if execPing {
+                        fmt.Println("Destination Up - ",k,i)
+                        fmt.Fprintf(w, "Destination Up \n")
+                    } else {
+                        fmt.Println("Destination Down - ",k,i)
+                        fmt.Fprintf(w, "Destination DOwn")
+                   }
+}
+        }
+     }
+}
+
+}
+func getHost(w http.ResponseWriter, r *http.Request) {
+     //fmt.Fprintf(w, "userip: %q is not IP:port", req.RemoteAddr)
+      fmt.Println("Received request for /host")
+
+}
+
+func getRoot(w http.ResponseWriter, r *http.Request) {
+     callerIP := r.RemoteAddr
+     fmt.Printf("Received Request from: %s\n", callerIP)
+     io.WriteString(w, callerIP)
+     queryParams := r.URL.Query()
+     fmt.Println(len(queryParams))
+     for k,v := range queryParams {
+        if k == "ping" {
+           fmt.Println("Ping testing")
+       }
+       for value := range v {
+          fmt.Println(value)
+      }
+        fmt.Println(v)
+    }
+}
+
+func getHealthz(w http.ResponseWriter, r *http.Request) {
+     fmt.Printf(" got /healthz request ")
+     io.WriteString(w, "This is a Health")
+}
+
+func getCustom(w http.ResponseWriter, r*http.Request) {
+    fmt.Printf("This is Custom Endpoint ")
+     io.WriteString(w, "Called Custom Endpoint")
+}
+
+func main() {
+     httpPort := "80"
+     _, present := os.LookupEnv("GOSERV_PORT")
+     if present {
+         httpPort = os.Getenv("GOSERV_PORT")
+         fmt.Println(httpPort)
+     }
+     _, presenta := os.LookupEnv("GOSERV_ENDPOINT")
+     if presenta {
+        httpEndpoint := os.Getenv("GOSERV_ENDPOINT")
+        customEndpoint := httpEndpoint
+        http.HandleFunc("/"+customEndpoint, getCustom)
+     }
+     //   httpPort := os.Getenv("GOSERV_PORT")
+     //   fmt.Println("Starting Server on Port: ", httpPort)
+     // } else {
+     //   httpPort := 8080
+     // }
+     //fmt.Println(httpPort)
+     fmt.Println("Starting Server on Port:", httpPort)
+     http.HandleFunc("/", getRoot)
+     http.HandleFunc("/header", getHeader)
+     http.HandleFunc("/healthz", getHealthz)
+     http.HandleFunc("/ip", getHost)
+     http.HandleFunc("/ping",pingTest)
+     err :=  http.ListenAndServe(":"+httpPort, nil)
+     if errors.Is(err, http.ErrServerClosed) {
+                fmt.Printf("server closed\n")
+        } else if err != nil {
+                fmt.Printf("error starting server: %s\n", err)
+                os.Exit(1)
+        }
+
+}
