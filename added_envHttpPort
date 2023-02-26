@@ -126,7 +126,7 @@ func main() {
      http.HandleFunc("/healthz", getHealthz)
      http.HandleFunc("/ip", getHost)
      http.HandleFunc("/ping",pingTest)
-     err :=  http.ListenAndServe(":3333", nil)
+     err :=  http.ListenAndServe(":"+httpPort, nil)
      if errors.Is(err, http.ErrServerClosed) {
                 fmt.Printf("server closed\n")
         } else if err != nil {
