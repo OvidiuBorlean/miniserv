@@ -10,7 +10,7 @@ import (
         "context"
         "time"
         _"log"
-        "strings"
+        _"strings"
         _"strconv"
 )
 
@@ -59,31 +59,19 @@ func pingTest(w http.ResponseWriter, r *http.Request) {
           fmt.Printf("IP Address: %s  - Invalid\n", k)
           io.WriteString(w, "Invalid IP Address")
         } else {
-           //fmt.Printf("IP Address: %s  - Ok\n", k)
-                //var d net.Dialer
-                //ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-                //defer cancel()
                 for _, i := range v {
-                   //fmt.Println(i)
-                   stringArray := []string {k,i}
-                   justString := strings.Join(stringArray,":")
-                   fmt.Println(justString)
-                   fmt.Println(v)
+                   //stringArray := []string {k,i}
+                   //justString := strings.Join(stringArray,":")
+                   //fmt.Println(justString)
+                   //fmt.Println(v)
                    execPing := doPing(k,i)
                    if execPing {
-                        fmt.Println("Successfully")
-                        fmt.Fprintf(w, "Success")
+                        fmt.Println("Destination Up - ",k,i)
+                        fmt.Fprintf(w, "Destination Up \n")
                     } else {
-                        fmt.Println("Error")
-                        fmt.Fprintf(w, "Unable to Ping")
+                        fmt.Println("Destination Down - ",k,i)
+                        fmt.Fprintf(w, "Destination DOwn")
                    }
-                   //conn, err := d.DialContext(ctx, "tcp", justString)
-                   //if err != nil {
-                   //  //log.Fatalf("Failed to dial: %v", err)
-                   //  fmt.Fprintf(w,"Error")
-                  // }
-                 //fmt.Fprintf(w, "Successfull")
-                //conn.Close()
 }
         }
      }
