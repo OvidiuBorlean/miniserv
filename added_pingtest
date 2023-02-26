@@ -1,0 +1,136 @@
+package main
+
+import (
+        "fmt"
+        "net/http"
+        "io"
+        "errors"
+        "os"
+        "net"
+        "context"
+        "time"
+        _"log"
+        "strings"
+        _"strconv"
+)
+
+
+func getHeader(w http.ResponseWriter, r *http.Request) {
+     ua := r.Header.Get("Host")
+     //fmt.Println(ua)
+     //headers := r.Header
+     //fmt.Println(headers)
+     //fmt.Fprintf(w, "User agent: %s\n", ua)
+     query :=  r.URL.Query()
+     fmt.Println(query)
+     for k, v := range r.Header {
+            fmt.Println(k,v)
+           fmt.Fprintf(w, "%q, %q\n", k, v)
+      }
+     fmt.Printf(ua)
+}
+
+func doPing(host string, port string) bool {
+    var d net.Dialer
+    ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+    defer cancel()
+    conn, err := d.DialContext(ctx, "tcp", host+":"+port)
+    if err != nil {
+       //log.Fatalf("Failed to dial: %v", err)
+       //fmt.Fprintf(w,"Error")
+       return false
+     }
+     //fmt.Fprintf(w, "Successfull")
+     conn.Close()
+return true
+}
+
+func pingTest(w http.ResponseWriter, r *http.Request) {
+     queryParams := r.URL.Query()
+     if len(queryParams) < 1 {
+        fmt.Println("No Queries parameters found in request")
+        io.WriteString(w, "Please supply the query parameters: <ip_address>=<port>")
+     }  else {
+       fmt.Printf("Ping tests: \n")
+      io.WriteString(w, "Ping test running...\n")
+     for k,v := range queryParams {
+          //fmt.Println(k)
+         if net.ParseIP(k) == nil {
+          fmt.Printf("IP Address: %s  - Invalid\n", k)
+          io.WriteString(w, "Invalid IP Address")
+        } else {
+           //fmt.Printf("IP Address: %s  - Ok\n", k)
+                //var d net.Dialer
+                //ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+                //defer cancel()
+                for _, i := range v {
+                   //fmt.Println(i)
+                   stringArray := []string {k,i}
+                   justString := strings.Join(stringArray,":")
+                   fmt.Println(justString)
+                   fmt.Println(v)
+                   execPing := doPing(k,i)
+                   if execPing {
+                        fmt.Println("Successfully")
+                        fmt.Fprintf(w, "Success")
+                    } else {
+                        fmt.Println("Error")
+                        fmt.Fprintf(w, "Unable to Ping")
+                   }
+                   //conn, err := d.DialContext(ctx, "tcp", justString)
+                   //if err != nil {
+                   //  //log.Fatalf("Failed to dial: %v", err)
+                   //  fmt.Fprintf(w,"Error")
+                  // }
+                 //fmt.Fprintf(w, "Successfull")
+                //conn.Close()
+}
+        }
+     }
+}
+
+}
+func getHost(w http.ResponseWriter, r *http.Request) {
+     //fmt.Fprintf(w, "userip: %q is not IP:port", req.RemoteAddr)
+      fmt.Println("Received request for /host")
+
+}
+
+func getRoot(w http.ResponseWriter, r *http.Request) {
+     callerIP := r.RemoteAddr
+     fmt.Printf("Received Request from: %s\n", callerIP)
+     io.WriteString(w, callerIP)
+     queryParams := r.URL.Query()
+     fmt.Println(len(queryParams))
+     for k,v := range queryParams {
+        if k == "ping" {
+           fmt.Println("Ping testing")
+       }
+       for value := range v {
+          fmt.Println(value)
+      }
+        fmt.Println(v)
+    }
+}
+
+func getHealthz(w http.ResponseWriter, r *http.Request) {
+     fmt.Printf(" got /healthz request ")
+     io.WriteString(w, "This is a Health")
+}
+
+func main() {
+     fmt.Println("Starting Server")
+     http.HandleFunc("/", getRoot)
+     http.HandleFunc("/header", getHeader)
+     http.HandleFunc("/healthz", getHealthz)
+     http.HandleFunc("/ip", getHost)
+     http.HandleFunc("/ping",pingTest)
+     err :=  http.ListenAndServe(":3333", nil)
+     if errors.Is(err, http.ErrServerClosed) {
+                fmt.Printf("server closed\n")
+        } else if err != nil {
+                fmt.Printf("error starting server: %s\n", err)
+                os.Exit(1)
+        }
+
+}
